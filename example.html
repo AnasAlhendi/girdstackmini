@@ -20,9 +20,7 @@
   <body>
     <div class="controls">
       <label for="screenSelect">Screen:</label>
-      <select id="screenSelect">
-        <option disabled selected>Loading profiles…</option>
-      </select>
+      <select id="screenSelect"></select>
       <button id="add">Add Widget</button>
       <button id="addHtmlWrap">Add HTML -> Button</button>
       <button id="addHtmlPre">Add Prebuilt Button HTML</button>
@@ -52,7 +50,7 @@
       window.addEventListener('resize', setSquareCells);
       setSquareCells();
 
-      // Load screen profiles from test.md and hook the dropdown
+      // Screen profiles defined inline (no external fetch)
       const screenSelect = document.getElementById('screenSelect');
       const profiles = new Map();
 
@@ -68,49 +66,25 @@
         setSquareCells();
       }
 
-      function parseProfilesFromMarkdown(text) {
-        // Expect repeating blocks like:
-        // 22" … 1080 x 1920 (Portrait) zelos v2:
-        // Grid: 12 x 25
-        // Box padding: 29px
-        // Edge padding: 29px
-        const lines = text.split(/\r?\n/);
-        const res = [];
-        let current = null;
-        const headerRe = /^\s*([^:]+?):\s*$/; // capture until trailing colon
-        const gridRe = /^\s*Grid:\s*(\d+)\s*x\s*(\d+)\s*$/i;
-        const boxPadRe = /^\s*Box\s*padding:\s*([0-9]+\s*px)\s*$/i;
-        const edgePadRe = /^\s*Edge\s*padding:\s*([0-9]+\s*px)\s*$/i;
-        for (const raw of lines) {
-          const line = raw.trim();
-          if (!line) continue;
-          const hm = line.match(headerRe);
-          if (hm) {
-            // finalize previous
-            if (current) res.push(current);
-            const title = hm[1].trim();
-            current = { title, columns: 12, rows: 12, boxPadding: '8px', edgePadding: '0px' };
-            continue;
-          }
-          if (!current) continue;
-          let m;
-          if ((m = line.match(gridRe))) {
-            current.columns = parseInt(m[1], 10);
-            current.rows = parseInt(m[2], 10);
-            continue;
-          }
-          if ((m = line.match(boxPadRe))) {
-            current.boxPadding = m[1].replace(/\s+/g, '');
-            continue;
-          }
-          if ((m = line.match(edgePadRe))) {
-            current.edgePadding = m[1].replace(/\s+/g, '');
-            continue;
-          }
-        }
-        if (current) res.push(current);
-        return res;
-      }
+      // Inline list based on test.md
+      const inlineProfiles = [
+        {
+          title: '22\" 1080 x 1920 (Portrait) Zelos v2',
+          columns: 12, rows: 25, boxPadding: '29px', edgePadding: '29px'
+        },
+        {
+          title: '15\" 1080 x 1920 (Portrait) Zelos v1',
+          columns: 12, rows: 22, boxPadding: '28px', edgePadding: '34px'
+        },
+        {
+          title: '15\" 1024 x 768 (Landscape) Mitra v1',
+          columns: 12, rows: 10, boxPadding: '29px', edgePadding: '29px'
+        },
+        {
+          title: '19\" 1280 x 1024 (Landscape) Mirta v2',
+          columns: 12, rows: 13, boxPadding: '34px', edgePadding: '34px'
+        },
+      ];
 
       function nameFromTitle(title) {
         const t = String(title || '').toLowerCase();
@@ -133,44 +107,21 @@
         return `${nm} heig ${p.rows} width ${p.columns} boxpadding ${stripPx(p.boxPadding)} edaging padding ${stripPx(p.edgePadding)}`;
       }
 
-      async function loadProfiles() {
-        try {
-          const resp = await fetch('test.md');
-          const txt = await resp.text();
-          const list = parseProfilesFromMarkdown(txt);
-          // clear all options
-          while (screenSelect.options.length) screenSelect.remove(0);
-          list.forEach((p, idx) => {
-            const opt = document.createElement('option');
-            // Use requested human-readable value format
-            const val = profileValueString(p);
-            opt.value = val;
-            opt.textContent = p.title;
-            screenSelect.appendChild(opt);
-            profiles.set(val, p);
-          });
-          // auto-select first parsed profile if available
-          if (list.length) {
-            const firstVal = profileValueString(list[0]);
-            screenSelect.value = firstVal;
-            applyProfile(list[0]);
-          } else {
-            // Fallback: show placeholder when none found
-            const opt = document.createElement('option');
-            opt.disabled = true;
-            opt.selected = true;
-            opt.textContent = 'No profiles found';
-            screenSelect.appendChild(opt);
-          }
-        } catch (e) {
-          // If fetch fails (e.g., opened as file://), keep defaults
-          console.warn('Unable to load test.md; using defaults', e);
-          while (screenSelect.options.length) screenSelect.remove(0);
+      function initProfilesFromInline() {
+        const list = inlineProfiles;
+        while (screenSelect.options.length) screenSelect.remove(0);
+        list.forEach((p) => {
           const opt = document.createElement('option');
-          opt.disabled = true;
-          opt.selected = true;
-          opt.textContent = 'Failed to load profiles';
+          const val = profileValueString(p);
+          opt.value = val;
+          opt.textContent = p.title;
           screenSelect.appendChild(opt);
+          profiles.set(val, p);
+        });
+        if (list.length) {
+          const firstVal = profileValueString(list[0]);
+          screenSelect.value = firstVal;
+          applyProfile(list[0]);
         }
       }
 
@@ -180,7 +131,7 @@
         applyProfile(p);
       });
 
-      loadProfiles();
+      initProfilesFromInline();
 
       // Add initial 1x1 widgets on first row
       const a = grid.addWidget({ x: 0, y: 0, w: 1, h: 1, content: 'A' });
