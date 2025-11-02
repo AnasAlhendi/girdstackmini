@@ -19,6 +19,11 @@
   </head>
   <body>
     <div class="controls">
+      <label for="screenSelect">Screen:</label>
+      <select id="screenSelect">
+        <option value="__screed__">screed</option>
+        <option disabled selected>Loading profiles…</option>
+      </select>
       <button id="add">Add Widget</button>
       <button id="addHtmlWrap">Add HTML -> Button</button>
       <button id="addHtmlPre">Add Prebuilt Button HTML</button>
@@ -47,6 +52,112 @@
       }
       window.addEventListener('resize', setSquareCells);
       setSquareCells();
+
+      // Load screen profiles from test.md and hook the dropdown
+      const screenSelect = document.getElementById('screenSelect');
+      const profiles = new Map();
+
+      function applyProfile(p) {
+        if (!p) return;
+        grid.setColumns(p.columns);
+        grid.setRows(p.rows);
+        grid.setMargin(p.boxPadding);
+        // apply edge padding on the grid container
+        const gridEl = document.getElementById('grid');
+        gridEl.style.padding = p.edgePadding;
+        // recompute cell height to maintain square-ish cells unless user resizes
+        setSquareCells();
+      }
+
+      function parseProfilesFromMarkdown(text) {
+        // Expect repeating blocks like:
+        // 22" … 1080 x 1920 (Portrait) zelos v2:
+        // Grid: 12 x 25
+        // Box padding: 29px
+        // Edge padding: 29px
+        const lines = text.split(/\r?\n/);
+        const res = [];
+        let current = null;
+        const headerRe = /^\s*([^:]+?):\s*$/; // capture until trailing colon
+        const gridRe = /^\s*Grid:\s*(\d+)\s*x\s*(\d+)\s*$/i;
+        const boxPadRe = /^\s*Box\s*padding:\s*([0-9]+\s*px)\s*$/i;
+        const edgePadRe = /^\s*Edge\s*padding:\s*([0-9]+\s*px)\s*$/i;
+        for (const raw of lines) {
+          const line = raw.trim();
+          if (!line) continue;
+          const hm = line.match(headerRe);
+          if (hm) {
+            // finalize previous
+            if (current) res.push(current);
+            const title = hm[1].trim();
+            current = { title, columns: 12, rows: 12, boxPadding: '8px', edgePadding: '0px' };
+            continue;
+          }
+          if (!current) continue;
+          let m;
+          if ((m = line.match(gridRe))) {
+            current.columns = parseInt(m[1], 10);
+            current.rows = parseInt(m[2], 10);
+            continue;
+          }
+          if ((m = line.match(boxPadRe))) {
+            current.boxPadding = m[1].replace(/\s+/g, '');
+            continue;
+          }
+          if ((m = line.match(edgePadRe))) {
+            current.edgePadding = m[1].replace(/\s+/g, '');
+            continue;
+          }
+        }
+        if (current) res.push(current);
+        return res;
+      }
+
+      async function loadProfiles() {
+        try {
+          const resp = await fetch('test.md');
+          const txt = await resp.text();
+          const list = parseProfilesFromMarkdown(txt);
+          // populate dropdown (keep the first static 'screed' option)
+          // clear any non-static options
+          while (screenSelect.options.length > 1) screenSelect.remove(1);
+          list.forEach((p, idx) => {
+            const opt = document.createElement('option');
+            const key = `md-${idx}`;
+            opt.value = key;
+            opt.textContent = p.title;
+            screenSelect.appendChild(opt);
+            profiles.set(key, p);
+          });
+          // auto-select first parsed profile if available
+          if (list.length) {
+            screenSelect.value = 'md-0';
+            applyProfile(list[0]);
+          } else {
+            // Fallback to default grid setup
+            screenSelect.value = '__screed__';
+          }
+        } catch (e) {
+          // If fetch fails (e.g., opened as file://), keep defaults
+          console.warn('Unable to load test.md; using defaults', e);
+          // prune loading placeholder
+          while (screenSelect.options.length > 1) screenSelect.remove(1);
+          screenSelect.value = '__screed__';
+        }
+      }
+
+      screenSelect.addEventListener('change', () => {
+        const key = screenSelect.value;
+        if (key === '__screed__') {
+          // basic neutral defaults
+          applyProfile({ columns: 12, rows: 12, boxPadding: '8px', edgePadding: '0px' });
+        } else {
+          const p = profiles.get(key);
+          applyProfile(p);
+        }
+      });
+
+      loadProfiles();
 
       // Add initial 1x1 widgets on first row
       const a = grid.addWidget({ x: 0, y: 0, w: 1, h: 1, content: 'A' });
@@ -83,4 +194,3 @@
     </script>
   </body>
   </html>
-
