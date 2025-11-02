@@ -112,6 +112,27 @@
         return res;
       }
 
+      function nameFromTitle(title) {
+        const t = String(title || '').toLowerCase();
+        if (t.includes('zelos')) return 'Zelos';
+        if (t.includes('mitra')) return 'Mitra';
+        if (t.includes('mirta')) return 'Mirta';
+        // fallback: first alpha word capitalized
+        const m = (title || '').match(/[A-Za-z]+/);
+        return m ? (m[0].charAt(0).toUpperCase() + m[0].slice(1)) : (title || 'Profile');
+      }
+
+      function stripPx(v) {
+        return String(v || '').replace(/px$/i, '');
+      }
+
+      function profileValueString(p) {
+        const nm = nameFromTitle(p.title);
+        // As requested: value like
+        // "Zelos heig 12 width 22 boxpadding 29 edaging padding 29"
+        return `${nm} heig ${p.rows} width ${p.columns} boxpadding ${stripPx(p.boxPadding)} edaging padding ${stripPx(p.edgePadding)}`;
+      }
+
       async function loadProfiles() {
         try {
           const resp = await fetch('test.md');
@@ -121,8 +142,8 @@
           while (screenSelect.options.length) screenSelect.remove(0);
           list.forEach((p, idx) => {
             const opt = document.createElement('option');
-            // Use parsed values as the option value
-            const val = `${p.columns}x${p.rows};${p.boxPadding};${p.edgePadding}`;
+            // Use requested human-readable value format
+            const val = profileValueString(p);
             opt.value = val;
             opt.textContent = p.title;
             screenSelect.appendChild(opt);
@@ -130,7 +151,7 @@
           });
           // auto-select first parsed profile if available
           if (list.length) {
-            const firstVal = `${list[0].columns}x${list[0].rows};${list[0].boxPadding};${list[0].edgePadding}`;
+            const firstVal = profileValueString(list[0]);
             screenSelect.value = firstVal;
             applyProfile(list[0]);
           } else {
