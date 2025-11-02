@@ -21,7 +21,6 @@
     <div class="controls">
       <label for="screenSelect">Screen:</label>
       <select id="screenSelect">
-        <option value="__screed__">screed</option>
         <option disabled selected>Loading profiles…</option>
       </select>
       <button id="add">Add Widget</button>
@@ -118,9 +117,8 @@
           const resp = await fetch('test.md');
           const txt = await resp.text();
           const list = parseProfilesFromMarkdown(txt);
-          // populate dropdown (keep the first static 'screed' option)
-          // clear any non-static options
-          while (screenSelect.options.length > 1) screenSelect.remove(1);
+          // clear all options
+          while (screenSelect.options.length) screenSelect.remove(0);
           list.forEach((p, idx) => {
             const opt = document.createElement('option');
             const key = `md-${idx}`;
@@ -134,27 +132,29 @@
             screenSelect.value = 'md-0';
             applyProfile(list[0]);
           } else {
-            // Fallback to default grid setup
-            screenSelect.value = '__screed__';
+            // Fallback: show placeholder when none found
+            const opt = document.createElement('option');
+            opt.disabled = true;
+            opt.selected = true;
+            opt.textContent = 'No profiles found';
+            screenSelect.appendChild(opt);
           }
         } catch (e) {
           // If fetch fails (e.g., opened as file://), keep defaults
           console.warn('Unable to load test.md; using defaults', e);
-          // prune loading placeholder
-          while (screenSelect.options.length > 1) screenSelect.remove(1);
-          screenSelect.value = '__screed__';
+          while (screenSelect.options.length) screenSelect.remove(0);
+          const opt = document.createElement('option');
+          opt.disabled = true;
+          opt.selected = true;
+          opt.textContent = 'Failed to load profiles';
+          screenSelect.appendChild(opt);
         }
       }
 
       screenSelect.addEventListener('change', () => {
         const key = screenSelect.value;
-        if (key === '__screed__') {
-          // basic neutral defaults
-          applyProfile({ columns: 12, rows: 12, boxPadding: '8px', edgePadding: '0px' });
-        } else {
-          const p = profiles.get(key);
-          applyProfile(p);
-        }
+        const p = profiles.get(key);
+        applyProfile(p);
       });
 
       loadProfiles();
