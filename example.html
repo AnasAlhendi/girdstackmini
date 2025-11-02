@@ -121,15 +121,17 @@
           while (screenSelect.options.length) screenSelect.remove(0);
           list.forEach((p, idx) => {
             const opt = document.createElement('option');
-            const key = `md-${idx}`;
-            opt.value = key;
+            // Use parsed values as the option value
+            const val = `${p.columns}x${p.rows};${p.boxPadding};${p.edgePadding}`;
+            opt.value = val;
             opt.textContent = p.title;
             screenSelect.appendChild(opt);
-            profiles.set(key, p);
+            profiles.set(val, p);
           });
           // auto-select first parsed profile if available
           if (list.length) {
-            screenSelect.value = 'md-0';
+            const firstVal = `${list[0].columns}x${list[0].rows};${list[0].boxPadding};${list[0].edgePadding}`;
+            screenSelect.value = firstVal;
             applyProfile(list[0]);
           } else {
             // Fallback: show placeholder when none found
