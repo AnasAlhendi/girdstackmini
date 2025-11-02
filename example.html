@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>GridStack Minimal Example</title>
+    <style>
+      .grid-stack {
+        width: 100%; max-width: 1000px; margin: 20px auto;min-height: 360px;
+      }
+      .grid-stack > .grid-stack-item { outline: 2px solid #000; }
+      .grid-stack-item-content {
+        background:#4b8cfb; color:#fff; display:flex; align-items:center; justify-content:center;
+        border-radius:8px; font: 14px/1.2 system-ui, sans-serif;
+      }
+      body, html { margin:0; padding:0; }
+      .controls { max-width: 1000px; margin: 10px auto; display: flex; gap: 8px; }
+      button { padding: 6px 10px; }
+    </style>
+  </head>
+  <body>
+    <div class="controls">
+      <button id="add">Add Widget</button>
+      <button id="addHtmlWrap">Add HTML -> Button</button>
+      <button id="addHtmlPre">Add Prebuilt Button HTML</button>
+      <button id="move">Move/Resize B</button>
+      <button id="remove">Remove A</button>
+    </div>
+    <div class="grid-stack" id="grid"></div>
+
+    <script src="gridstack.js"></script>
+    <script>
+      // Init with basic options
+      const grid = new GridStack('#grid', {
+        columns: 12,
+        rows: 12,
+        margin: '8px',
+        cellHeight: 80,
+        debug: false,
+      });
+
+      // Optional: make cells square
+      function setSquareCells() {
+        const gridEl = document.getElementById('grid');
+        const w = gridEl.clientWidth || gridEl.getBoundingClientRect().width;
+        const cell = Math.max(10, Math.floor(w / 12));
+        grid.setCellHeight(cell);
+      }
+      window.addEventListener('resize', setSquareCells);
+      setSquareCells();
+
+      // Add initial 1x1 widgets on first row
+      const a = grid.addWidget({ x: 0, y: 0, w: 1, h: 1, content: 'A' });
+      const b = grid.addWidget({ x: 1, y: 0, w: 1, h: 1, content: 'B' });
+      b.id = 'item-b';
+
+      // Wire up controls
+      document.getElementById('add').addEventListener('click', () => {
+        const count = document.querySelectorAll('.grid-stack-item').length;
+        grid.addWidget({ w: 1, h: 1, content: 'New ' + count });
+      });
+
+      // Add HTML -> Button (element becomes the item) and log result
+      document.getElementById('addHtmlWrap').addEventListener('click', () => {
+        const html = '<button style="background:#444;color:#fff;border:0;border-radius:8px;">B</button>';
+        const el = grid.htmlAsItem(html);
+
+      });
+
+      // Add prebuilt grid item HTML directly as an item and log result
+      document.getElementById('addHtmlPre').addEventListener('click', () => {
+        const pre = '<button class="grid-stack-item" gs-x="0" gs-y="2" gs-w="3" gs-h="2" style="background:#2c6bf2;color:#fff;border:0;border-radius:8px;outline:3px solid #000;font-weight:700;">PREBUILT</button>';
+        const el = grid.htmlAsItem(pre);
+
+      });
+
+      document.getElementById('move').addEventListener('click', () => {
+        grid.updateWidget('#item-b', { x: 6, y: 1, w: 5, h: 2 });
+      });
+
+      document.getElementById('remove').addEventListener('click', () => {
+        grid.removeWidget(a);
+      });
+    </script>
+  </body>
+  </html>
+
