@@ -4,31 +4,44 @@
     <meta charset="utf-8" />
     <title>GridStack Minimal Example</title>
     <style>
-      .grid-stack {
-        width: 100%; margin: 20px auto;min-height: 360px;
+      html, body {
+        margin: 0;
+        padding: 0;
+        font: 14px/1.2 system-ui, sans-serif;
       }
-      /* use border instead of outline so visible gaps equal boxpadding */
+
+      .controls {
+        margin: 10px auto;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .grid-stack {
+        width: 100%;
+        margin: 20px auto;
+        min-height: 360px;
+      }
 
       .grid-stack-item-content {
-        background:#4b8cfb; color:#fff; display:flex; align-items:center; justify-content:center;
-        border-radius:8px; font: 14px/1.2 system-ui, sans-serif;
+        background: #4b8cfb;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
       }
-      body, html { margin:0; padding:0; }
-      .controls { margin: 10px auto; display: flex; gap: 8px; }
-      button { padding: 6px 10px; }
     </style>
   </head>
   <body>
     <div class="controls">
       <label for="screenSelect">Screen:</label>
       <select id="screenSelect"></select>
-      <input id="screenValue" type="text" readonly placeholder="screen value" style="min-width:320px;" />
+      <input id="screenValue" type="text" readonly placeholder="screen value" style="min-width:320px" />
       <button id="copyScreenValue">Copy</button>
-      <input id="urlInput" type="text" placeholder="https://example.com" style="flex:1; min-width:240px;" />
-      <button id="addUrl">Add URL</button>
       <button id="add">Add Widget</button>
-      <button id="addHtmlWrap">Add HTML -> Button</button>
-      <button id="addHtmlPre">Add Prebuilt Button HTML</button>
+      <button id="addHtmlWrap">Add HTML → Button</button>
+      <button id="addHtmlPre">Add Prebuilt</button>
       <button id="move">Move/Resize B</button>
       <button id="remove">Remove A</button>
     </div>
@@ -36,168 +49,125 @@
 
     <script src="gridstack.js"></script>
     <script>
-      // Grid instance (re-assigned on each profile change)
+      // DOM references
+      const screenSelect = document.getElementById('screenSelect');
+      const screenValue  = document.getElementById('screenValue');
+      const gridEl       = document.getElementById('grid');
+
+      // Grid instance
       let grid;
 
-      // Maintain exact container height from selected profile by adjusting cellHeight
-      let currentProfile = null;
-      function applyProfileHeight() {
-        if (!grid || !currentProfile) return;
-        const rows = currentProfile.rows || 12;
-        const gap = parseInt(String(currentProfile.boxPadding || '0').replace(/px$/i, ''), 10) || 0;
-        if (currentProfile.height != null) {
-          const ch = (currentProfile.height - Math.max(0, rows - 1) * gap) / rows;
-          if (ch > 0) grid.setCellHeight(ch);
-        }
-      }
-
-      // Screen profiles defined inline (no external fetch)
-      const screenSelect = document.getElementById('screenSelect');
-      const profiles = new Map();
-
-      function reInitGridFromProfile(p) {
-        if (!p) return;
-        currentProfile = p;
-        // destroy existing instance (keeps DOM children)
-        if (grid) grid.destroy();
-        grid = new GridStack('#grid', {
-          columns: p.columns,
-          rows: p.rows,
-          margin: p.boxPadding,
-          debug: false,
-        });
-        const gridEl = document.getElementById('grid');
-        // No padding on grid container
-        gridEl.style.padding = '0px';
-        if (p.width) gridEl.style.width = p.width + 'px';
-        if (p.height) gridEl.style.height = p.height + 'px';
-        applyProfileHeight();
-      }
-
-      // Inline list based on test.md
-      const inlineProfiles = [
-        {
-          title: '22\" 1080 x 1920 (Portrait) Zelos v2',
-          columns: 12, rows: 25, boxPadding: '29px', edgePadding: '29px', width: 1080, height: 1920,
-        },
-        {
-          title: '15\" 1080 x 1920 (Portrait) Zelos v1',
-          columns: 12, rows: 22, boxPadding: '28px', edgePadding: '34px', width: 1080, height: 1920,
-        },
-        {
-          title: '15\" 1024 x 768 (Landscape) Mitra v1',
-          columns: 12, rows: 10, boxPadding: '29px', edgePadding: '29px', width: 1024, height: 768,
-        },
-        {
-          title: '19\" 1280 x 1024 (Landscape) Mirta v2',
-          columns: 12, rows: 13, boxPadding: '34px', edgePadding: '34px', width: 1280, height: 1024
-        },
+      // Profiles
+      const profiles = [
+        { title: '22" 1080 x 1920 (Portrait) Zelos v2', columns: 12, rows: 25, boxPadding: '29px', edgePadding: '29px', width: 1080, height: 1920 },
+        { title: '15" 1080 x 1920 (Portrait) Zelos v1', columns: 12, rows: 22, boxPadding: '28px', edgePadding: '34px', width: 1080, height: 1920 },
+        { title: '15" 1024 x 768 (Landscape) Mitra v1', columns: 12, rows: 10, boxPadding: '29px', edgePadding: '29px', width: 1024, height: 768 },
+        { title: '19" 1280 x 1024 (Landscape) Mirta v2', columns: 12, rows: 13, boxPadding: '34px', edgePadding: '34px', width: 1280, height: 1024 },
       ];
 
-      function nameFromTitle(title) {
-        const t = String(title || '').toLowerCase();
-        if (t.includes('zelos')) return 'Zelos';
-        if (t.includes('mitra')) return 'Mitra';
-        if (t.includes('mirta')) return 'Mirta';
-        // fallback: first alpha word capitalized
-        const m = (title || '').match(/[A-Za-z]+/);
-        return m ? (m[0].charAt(0).toUpperCase() + m[0].slice(1)) : (title || 'Profile');
+      // Helpers
+      function numberFromPx(v) {
+        return parseInt(String(v || '').replace(/px$/i, ''), 10) || 0;
       }
 
-      function stripPx(v) {
-        return String(v || '').replace(/px$/i, '');
+      function profileNameFromTitle(title) {
+        const match = (title || '').match(/zelos|mitra|mirta/i);
+        const base = match ? match[0] : (title || 'Profile');
+        return base.charAt(0).toUpperCase() + base.slice(1);
       }
 
-      function profileValueString(p) {
-        const nm = nameFromTitle(p.title);
-        // As requested: value like
-        // "Zelos heig 12 width 22 boxpadding 29 edaging padding 29 screenwidth 1080 screenheight 1920"
-        return `${nm} heig ${p.rows} width ${p.columns} boxpadding ${stripPx(p.boxPadding)} edaging padding ${stripPx(p.edgePadding)} screenwidth ${p.width} screenheight ${p.height}`;
+      function formatProfileValue(p) {
+        // e.g. "Zelos heig 12 width 22 boxpadding 29 edaging padding 29 screenwidth 1080 screenheight 1920"
+        const name = profileNameFromTitle(p.title);
+        return (
+          name +
+          ' heig ' + p.rows +
+          ' width ' + p.columns +
+          ' boxpadding ' + numberFromPx(p.boxPadding) +
+          ' edaging padding ' + numberFromPx(p.edgePadding) +
+          ' screenwidth ' + p.width +
+          ' screenheight ' + p.height
+        );
       }
 
-      function initProfilesFromInline() {
-        const list = inlineProfiles;
-        while (screenSelect.options.length) screenSelect.remove(0);
-        list.forEach((p) => {
+      function populateScreenOptions() {
+        screenSelect.innerHTML = '';
+        profiles.forEach((p, i) => {
           const opt = document.createElement('option');
-          const val = profileValueString(p);
-          opt.value = val;
+          opt.value = String(i); // use index as value
           opt.textContent = p.title;
           screenSelect.appendChild(opt);
-          profiles.set(val, p);
         });
-        if (list.length) {
-          const firstVal = profileValueString(list[0]);
-          screenSelect.value = firstVal;
-          document.getElementById('screenValue').value = firstVal;
-          reInitGridFromProfile(list[0]);
+      }
+
+      function initGrid(profile) {
+        if (!profile) return;
+        if (grid) grid.destroy();
+
+        grid = new GridStack('#grid', {
+          columns: profile.columns,
+          rows: profile.rows,
+          margin: profile.boxPadding
+        });
+
+        // Container sizing
+        gridEl.style.padding = '0';
+        gridEl.style.width   = profile.width  ? profile.width  + 'px' : '';
+        gridEl.style.height  = profile.height ? profile.height + 'px' : '';
+
+        // Keep exact container height by adjusting cellHeight
+        const gap  = numberFromPx(profile.boxPadding);
+        const rows = profile.rows || 12;
+        if (profile.height) {
+          const cellH = (profile.height - Math.max(0, rows - 1) * gap) / rows;
+          if (cellH > 0) grid.setCellHeight(cellH);
         }
       }
 
-      screenSelect.addEventListener('change', () => {
-        const val = screenSelect.value;
-        document.getElementById('screenValue').value = val;
+      function onProfileChange() {
+        const idx = Number(screenSelect.value);
+        const p = profiles[idx];
+        if (!p) return;
+        screenValue.value = formatProfileValue(p);
+        initGrid(p);
+      }
 
-        // Try to parse from value string (e.g., "Zelos heig 12 width 22 boxpadding 29 edaging padding 29")
-        const mH = val.match(/\bheig\s+(\d+)/i);
-        const mW = val.match(/\bwidth\s+(\d+)/i);
-        const mBox = val.match(/boxpadding\s+(\d+)/i);
-        const mEdge = val.match(/edaging\s*padding\s+(\d+)/i);
-        const mSW = val.match(/\bscreenwidth\s+(\d+)/i);
-        const mSH = val.match(/\bscreenheight\s+(\d+)/i);
+      function copyScreenValue() {
+        const value = screenValue.value || '';
+        navigator.clipboard.writeText(value).catch(() => {
+          screenValue.select();
+          if (document.execCommand) document.execCommand('copy');
+        });
+      }
 
-        if (mH && mW) {
-          const rows = parseInt(mH[1], 10);
-          const cols = parseInt(mW[1], 10);
-          const box = mBox ? (mBox[1] + 'px') : '8px';
-          const edge = mEdge ? (mEdge[1] + 'px') : '0px';
-          const sw = mSW ? parseInt(mSW[1], 10) : undefined;
-          const sh = mSH ? parseInt(mSH[1], 10) : undefined;
-          reInitGridFromProfile({ columns: cols, rows: rows, boxPadding: box, edgePadding: edge, width: sw, height: sh });
-          return;
-        }
+      // Setup
+      populateScreenOptions();
+      screenSelect.value = '0';
+      screenValue.value = formatProfileValue(profiles[0]);
+      initGrid(profiles[0]);
 
-        // Fallback to mapped profile if parsing fails
-        const p = profiles.get(val);
-        if (p) reInitGridFromProfile(p);
-      });
+      // Initial widgets A and B
+      const widgetA = grid.addWidget({ x: 0, y: 0, w: 2, h: 2, content: 'A' });
+      const widgetB = grid.addWidget({ x: 1, y: 0, w: 2, h: 2, content: 'B' });
+      widgetB.id = 'item-b';
 
-      initProfilesFromInline();
+      // Events
+      screenSelect.addEventListener('change', onProfileChange);
+      document.getElementById('copyScreenValue').addEventListener('click', copyScreenValue);
 
-      // Copy screen value
-      document.getElementById('copyScreenValue').addEventListener('click', async () => {
-        const v = document.getElementById('screenValue').value || '';
-        try {
-          await navigator.clipboard.writeText(v);
-        } catch (e) {
-          const inp = document.getElementById('screenValue');
-          inp.select();
-          document.execCommand && document.execCommand('copy');
-        }
-      });
-
-      // Add initial 1x1 widgets on first row
-      const a = (function(){ return grid.addWidget({ x: 0, y: 0, w: 2, h: 2, content: 'A' }); })();
-      const b = (function(){ return grid.addWidget({ x: 1, y: 0, w: 2, h: 2, content: 'B' }); })();
-      b.id = 'item-b';
-
-      // Wire up controls
       document.getElementById('add').addEventListener('click', () => {
         const count = document.querySelectorAll('.grid-stack-item').length;
-        grid.addWidget({ w: 1, h: 1, w: 2, h: 2, content: 'New ' + count });
+        grid.addWidget({ w: 2, h: 2, content: 'New ' + count });
       });
 
-            // URL widget removed per request
-// Add HTML -> Button (element becomes the item) and log result
       document.getElementById('addHtmlWrap').addEventListener('click', () => {
-        const html = '<button style="background:#444;color:#fff;border:0;border-radius:8px;">B</button>';
-        const el = grid.addWidgetHTML(html, { x: 0, y: 0, w: 1, h: 1 });
+        const html = '<button style="background:#444;color:#fff;border:0;border-radius:8px">B</button>';
+        grid.addWidgetHTML(html, { x: 0, y: 0, w: 1, h: 1 });
       });
 
-      // Add prebuilt grid item HTML directly as an item and log result
       document.getElementById('addHtmlPre').addEventListener('click', () => {
-        const pre = '<button class="grid-stack-item" gs-x="0" gs-y="2" gs-w="3" gs-h="2" style="background:#2c6bf2;color:#fff;border:0;border-radius:8px;outline:3px solid #000;font-weight:700;">PREBUILT</button>';
-        const el = grid.addWidgetHTML(pre);
+        const prebuilt = '<button class="grid-stack-item" gs-x="0" gs-y="2" gs-w="3" gs-h="2" style="background:#2c6bf2;color:#fff;border:0;border-radius:8px;outline:3px solid #000;font-weight:700">PREBUILT</button>';
+        grid.addWidgetHTML(prebuilt);
       });
 
       document.getElementById('move').addEventListener('click', () => {
@@ -205,8 +175,9 @@
       });
 
       document.getElementById('remove').addEventListener('click', () => {
-        grid.removeWidget(a);
+        grid.removeWidget(widgetA);
       });
     </script>
   </body>
   </html>
+
