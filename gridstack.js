@@ -53,6 +53,20 @@
     return null;
   }
 
+  // convert a numeric size + optional unit to pixels
+  function toPxValue(n, u) {
+    const unit = u || 'px';
+    if (unit === 'px') return n || 0;
+    const t = document.createElement('div');
+    t.style.position = 'absolute';
+    t.style.visibility = 'hidden';
+    t.style.height = (n + unit);
+    document.body.appendChild(t);
+    const px = t.getBoundingClientRect().height || 0;
+    t.remove();
+    return px || 0;
+  }
+
   function ensureContentWrapper(el) {
     const content = el.querySelector && el.querySelector('.grid-stack-item-content');
     if (content) return content;
@@ -118,7 +132,15 @@
 
       // optional bottom bar element
       this._ensureBottomBar();
-      this._bottomItems = [];
+      if (this.bottomBarCfg) {
+        this.bottomGrid = new GridStack(this.bottomBarContentEl, {
+          columns: this.bottomBarCfg.columns,
+          rows: this.bottomBarCfg.rows,
+          margin: this.bottomBarCfg.margin,
+          cellHeight: (this.bottomBarCfg.cellHeight || 80) + (this.bottomBarCfg.cellHeightUnit || 'px'),
+          nonce: this.nonce
+        });
+      }
 
       // initial layout
       this.layout();
@@ -129,6 +151,7 @@
     destroy() {
       window.removeEventListener('resize', this._onResize);
       if (this.styleEl && this.styleEl.parentNode) this.styleEl.parentNode.removeChild(this.styleEl);
+      if (this.bottomGrid && this.bottomGrid.destroy) this.bottomGrid.destroy();
       if (this.bottomBarEl && this.bottomBarEl.parentNode) this.bottomBarEl.parentNode.removeChild(this.bottomBarEl);
     }
 
@@ -248,92 +271,12 @@
 
     // Add a widget to the bottom bar content area
     addBottomWidget(elOrHtmlOrOpts, opts) {
-      if (!this.bottomBarCfg || !this.bottomBarContentEl) return null;
-      let el, conf;
-      if (typeof elOrHtmlOrOpts === 'string') {
-        const t = document.createElement('template');
-        t.innerHTML = elOrHtmlOrOpts.trim();
-        el = t.content.firstElementChild;
-        if (el && !el.classList.contains('grid-stack-item')) {
-          if (el.tagName && el.tagName.toLowerCase() === 'button') {
-            el.classList.add('grid-stack-item');
-          } else {
-            const wrap = document.createElement('div');
-            wrap.className = 'grid-stack-item';
-            wrap.appendChild(el);
-            el = wrap;
-          }
-        }
-        conf = opts || {};
-      } else if (elOrHtmlOrOpts instanceof Element) {
-        el = elOrHtmlOrOpts;
-        if (el.tagName && el.tagName.toLowerCase() === 'button') {
-          if (!el.classList.contains('grid-stack-item')) el.classList.add('grid-stack-item');
-        }
-        conf = opts || {};
-      } else {
-        conf = elOrHtmlOrOpts || {};
-        const content = conf.content != null ? String(conf.content) : '';
-        const wrap = document.createElement('div');
-        wrap.className = 'grid-stack-item';
-        const inner = document.createElement('div');
-        inner.className = 'grid-stack-item-content';
-        inner.innerHTML = content;
-        wrap.appendChild(inner);
-        el = wrap;
-      }
-
-      ensureContentWrapper(el);
-      if (el.parentNode !== this.bottomBarContentEl) this.bottomBarContentEl.appendChild(el);
-
-      const cols = Math.max(1, Number(this.bottomBarCfg.columns) || 4);
-      const maxRows = toNumberMaybe(this.bottomBarCfg.rows);
-
-      let w = toNumberMaybe(conf.w) || 1;
-      let h = toNumberMaybe(conf.h) || 1;
-      if (cols && w > cols) w = cols;
-
-      let x = toNumberMaybe(conf.x);
-      let y = toNumberMaybe(conf.y);
-      if (x == null || y == null) {
-        const pos = this._bottomFindEmptyPosition(w, h, cols, maxRows);
-        if (!pos) return null;
-        x = pos.x; y = pos.y;
-      } else {
-        x = Math.max(0, x);
-        y = Math.max(0, y);
-        if (cols && x + w > cols) x = Math.max(0, cols - w);
-        if (maxRows != null && y + h > maxRows) {
-          const pos = this._bottomFindEmptyPosition(w, h, cols, maxRows);
-          if (!pos) return null;
-          x = pos.x; y = pos.y;
-        }
-        if (!this._bottomIsAreaFree(x, y, w, h)) {
-          const pos = this._bottomFindEmptyPosition(w, h, cols, maxRows);
-          if (!pos) return null;
-          x = pos.x; y = pos.y;
-        }
-      }
-
-      el.setAttribute('gs-x', String(x));
-      el.setAttribute('gs-y', String(y));
-      el.setAttribute('gs-w', String(w));
-      el.setAttribute('gs-h', String(h));
-
-      const existing = this._bottomItems.find(i => i.el === el);
-      if (existing) Object.assign(existing, { el, x, y, w, h });
-      else this._bottomItems.push({ el, x, y, w, h });
-
+      if (!this.bottomGrid) return null;
+      const el = this.bottomGrid.addWidget(elOrHtmlOrOpts, opts);
       this.layout();
       return el;
     }
 
-    // Add a widget from HTML string. If the HTML is already a
-    // `.grid-stack-item`, it is used directly; otherwise it's wrapped
-    // by addWidget() into a standard grid item.
-    addWidgetHtml(html, opts) {
-      return this.addWidget(html, opts || { w: 1, h: 1 });
-    }
 
     // Make the provided HTML element (from a string) the grid item itself.
     // Adds the `grid-stack-item` class to that element (no inner wrapper),
@@ -371,75 +314,29 @@
 
     // Bottom bar: add element as item (no inner wrapper)
     addBottomWidgetHTML(html, xOrOpts, y, w, h) {
-      if (!this.bottomBarCfg) return null;
-      const tpl = document.createElement('template');
-      tpl.innerHTML = (html || '').trim();
-      const el = tpl.content.firstElementChild;
-      if (!el) return null;
-      if (!el.classList.contains('grid-stack-item')) el.classList.add('grid-stack-item');
-      el.dataset.gsNowrap = 'true';
-      let conf = { w: 1, h: 1 };
-      if (typeof xOrOpts === 'object' && xOrOpts !== null) {
-        conf = Object.assign(conf, xOrOpts);
-      } else if (xOrOpts != null) {
-        conf.x = toNumberMaybe(xOrOpts);
-        conf.y = toNumberMaybe(y);
-        conf.w = toNumberMaybe(w) || conf.w;
-        conf.h = toNumberMaybe(h) || conf.h;
-      }
-      const gx = toNumberMaybe(el.getAttribute('gs-x'));
-      const gy = toNumberMaybe(el.getAttribute('gs-y'));
-      const gw = toNumberMaybe(el.getAttribute('gs-w'));
-      const gh = toNumberMaybe(el.getAttribute('gs-h'));
-      if (conf.x == null && gx != null) conf.x = gx;
-      if (conf.y == null && gy != null) conf.y = gy;
-      if (conf.w == null && gw != null) conf.w = gw;
-      if (conf.h == null && gh != null) conf.h = gh;
-      return this.addBottomWidget(el, conf);
+      if (!this.bottomGrid) return null;
+      const el = this.bottomGrid.addWidgetHTML(html, xOrOpts, y, w, h);
+      this.layout();
+      return el;
     }
 
     // Update a bottom widget position/size
     updateBottomWidget(target, conf) {
-      if (!this.bottomBarCfg) return false;
-      const el = this._resolveItemEl(target);
-      if (!el) return false;
-      const item = this._bottomItems.find(i => i.el === el);
-      if (!item) return false;
-      const next = Object.assign({}, item);
-      if (conf && typeof conf === 'object') {
-        if (conf.x != null) next.x = Math.max(0, Number(conf.x) || 0);
-        if (conf.y != null) next.y = Math.max(0, Number(conf.y) || 0);
-        if (conf.w != null) next.w = Math.max(1, Number(conf.w) || 1);
-        if (conf.h != null) next.h = Math.max(1, Number(conf.h) || 1);
-      }
-      const cols = Math.max(1, Number(this.bottomBarCfg.columns) || 4);
-      if (cols && next.w > cols) next.w = cols;
-      if (cols && next.x + next.w > cols) next.x = Math.max(0, cols - next.w);
-      Object.assign(item, next);
-      el.setAttribute('gs-x', String(item.x));
-      el.setAttribute('gs-y', String(item.y));
-      el.setAttribute('gs-w', String(item.w));
-      el.setAttribute('gs-h', String(item.h));
+      if (!this.bottomGrid) return false;
+      const ok = this.bottomGrid.updateWidget(target, conf);
       this.layout();
-      return true;
+      return ok;
     }
 
     // Remove a bottom widget
     removeBottomWidget(target) {
-      if (!this.bottomBarCfg) return false;
-      const el = this._resolveItemEl(target);
-      if (!el) return false;
-      const idx = this._bottomItems.findIndex(i => i.el === el);
-      if (idx === -1) return false;
-      this._bottomItems.splice(idx, 1);
-      if (el.parentNode === this.bottomBarContentEl) el.parentNode.removeChild(el);
+      if (!this.bottomGrid) return false;
+      const ok = this.bottomGrid.removeWidget(target);
       this.layout();
-      return true;
+      return ok;
     }
 
-    // Backward compatibility aliases
-    htmlAsItem(html, optsOrX, y, w, h) { return this.addWidgetHTML(html, optsOrX, y, w, h); }
-    addHtmlAsItem(html, optsOrX, y, w, h) { return this.addWidgetHTML(html, optsOrX, y, w, h); }
+    // (compat aliases removed)
 
     // (removed) addButtonItem, makeItem
 
@@ -483,13 +380,7 @@
         this._ensureBottomBar();
         const gapB = this._gapPxFrom(this.bottomBarCfg.margin || 0);
         const rowsB = Math.max(1, Number(this.bottomBarCfg.rows) || 1);
-        const chB = (this.bottomBarCfg.cellHeightUnit === 'px') ? (this.bottomBarCfg.cellHeight || 80) : (function() {
-          const t = document.createElement('div');
-          t.style.position = 'absolute'; t.style.visibility = 'hidden';
-          t.style.height = (this.bottomBarCfg.cellHeight + (this.bottomBarCfg.cellHeightUnit || 'px'));
-          document.body.appendChild(t);
-          const px = t.getBoundingClientRect().height || 0; t.remove(); return px || 0;
-        }).call(this);
+        const chB = toPxValue(this.bottomBarCfg.cellHeight || 80, this.bottomBarCfg.cellHeightUnit || 'px');
         const contentH = (rowsB * chB) + (Math.max(0, rowsB - 1) * gapB);
         const lineH = this.bottomBarCfg.lineHeight || 8;
         const barH = contentH + lineH;
@@ -506,13 +397,8 @@
         lineS.top = '0px';
         lineS.background = this.bottomBarCfg.color || '#000';
 
-        // layout bottom widgets
-        const colsB = Math.max(1, Number(this.bottomBarCfg.columns) || 4);
-        const containerW = this.bottomBarContentEl.clientWidth || this.bottomBarContentEl.getBoundingClientRect().width || 0;
-        const totalGapW = Math.max(0, colsB - 1) * gapB;
-        const avail = Math.max(0, containerW - totalGapW);
-        const cwB = Math.floor(avail / colsB);
-        this._bottomItems.forEach(n => this._applyBottomItemLayout(n, cwB, chB, gapB));
+        // ensure bottom grid is laid out
+        if (this.bottomGrid) this.bottomGrid.layout();
       } else if (this.bottomBarEl) {
         this.bottomBarEl.style.height = '0px';
       }
@@ -606,17 +492,7 @@
     }
 
     _cellHeight() {
-      // for now only px math; if non-px provided, approximate via computed px value
-      if (this.cellHeightUnit === 'px') return this.cellHeightValue;
-      // fallback: create temp element to resolve to px
-      const t = document.createElement('div');
-      t.style.position = 'absolute';
-      t.style.visibility = 'hidden';
-      t.style.height = this.cellHeightValue + this.cellHeightUnit;
-      document.body.appendChild(t);
-      const px = t.getBoundingClientRect().height || 0;
-      t.remove();
-      return px || 0;
+      return toPxValue(this.cellHeightValue, this.cellHeightUnit);
     }
 
   _computedRows() {
@@ -627,29 +503,12 @@
 
     _gapPx() {
       const p = parseSize(this.margin);
-      if (p.u === 'px') return p.n;
-      // fallback: resolve to pixels using a temp element height
-      const t = document.createElement('div');
-      t.style.position = 'absolute';
-      t.style.visibility = 'hidden';
-      t.style.height = (p.n + (p.u || 'px'));
-      document.body.appendChild(t);
-      const px = t.getBoundingClientRect().height || 0;
-      t.remove();
-      return px || 0;
+      return toPxValue(p.n, p.u || 'px');
     }
 
     _gapPxFrom(v) {
       const p = parseSize(v);
-      if (p.u === 'px') return p.n;
-      const t = document.createElement('div');
-      t.style.position = 'absolute';
-      t.style.visibility = 'hidden';
-      t.style.height = (p.n + (p.u || 'px'));
-      document.body.appendChild(t);
-      const px = t.getBoundingClientRect().height || 0;
-      t.remove();
-      return px || 0;
+      return toPxValue(p.n, p.u || 'px');
     }
 
     _ensureBottomBar() {
@@ -659,26 +518,6 @@
         bar.className = 'grid-stack-bottom-bar';
         const content = document.createElement('div');
         content.className = 'grid-stack-bottom-content';
-        content.style.position = 'absolute';
-        content.style.left = '0';
-        content.style.right = '0';
-        content.style.bottom = '';
-        content.style.top = '0';
-        content.style.padding = '0px';
-        content.style.boxSizing = 'border-box';
-        content.style.overflow = 'visible';
-        content.style.position = 'absolute';
-        content.style.display = 'block';
-        content.style.zIndex = '1';
-        content.style.pointerEvents = 'auto';
-        content.style.userSelect = 'none';
-        content.style.transform = '';
-        content.style.webkitTransform = '';
-        content.style.msTransform = '';
-        content.style.mozTransform = '';
-        content.style.oTransform = '';
-        content.style.position = 'absolute';
-        content.style.position = 'absolute';
         const line = document.createElement('div');
         line.className = 'grid-stack-bottom-line';
         bar.appendChild(content);
@@ -690,40 +529,7 @@
       }
     }
 
-    _applyBottomItemLayout(n, cw, ch, gap) {
-      const left = n.x * (cw + gap);
-      const top = (n.y * (ch + gap));
-      const width = (n.w * cw) + (Math.max(0, n.w - 1) * gap);
-      const height = (n.h * ch) + (Math.max(0, n.h - 1) * gap);
-      const s = n.el.style;
-      s.position = 'absolute';
-      s.left = left + 'px';
-      s.top = top + 'px';
-      s.width = width + 'px';
-      s.height = height + 'px';
-      const content = n.el.querySelector('.grid-stack-item-content');
-      if (content) content.style.padding = '0px'; else n.el.style.padding = '0px';
-    }
-
-    _bottomIsAreaFree(x, y, w, h) {
-      const rect = { x, y, w, h };
-      for (const it of this._bottomItems) {
-        const r2 = { x: it.x, y: it.y, w: it.w, h: it.h };
-        if (this._intersects(rect, r2)) return false;
-      }
-      return true;
-    }
-
-    _bottomFindEmptyPosition(w, h, cols, maxRows) {
-      const columns = Math.max(1, cols || 4);
-      const limitY = (maxRows != null) ? Math.max(0, maxRows - h) : 50;
-      for (let y = 0; y <= limitY; y++) {
-        for (let x = 0; x + w <= columns; x++) {
-          if (this._bottomIsAreaFree(x, y, w, h)) return { x, y };
-        }
-      }
-      return null;
-    }
+    // bottom-specific geometry handled by bottomGrid
     
   }
 
