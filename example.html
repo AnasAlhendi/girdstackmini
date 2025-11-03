@@ -34,16 +34,17 @@
       // Grid instance (re-assigned on each profile change)
       let grid;
 
-      // Optional: make cells square
-      function setSquareCells() {
-        const gridEl = document.getElementById('grid');
-        const w = gridEl.clientWidth || gridEl.getBoundingClientRect().width;
-        const cols = grid && grid.columns ? grid.columns : 12;
-        const cell = Math.max(10, Math.floor(w / cols));
-        if (grid) grid.setCellHeight(cell);
+      // Maintain exact container height from selected profile by adjusting cellHeight
+      let currentProfile = null;
+      function applyProfileHeight() {
+        if (!grid || !currentProfile) return;
+        const rows = currentProfile.rows || 12;
+        const gap = parseInt(String(currentProfile.boxPadding || '0').replace(/px$/i, ''), 10) || 0;
+        if (currentProfile.height != null) {
+          const ch = (currentProfile.height - Math.max(0, rows - 1) * gap) / rows;
+          if (ch > 0) grid.setCellHeight(ch);
+        }
       }
-      window.addEventListener('resize', setSquareCells);
-      setSquareCells();
 
       // Screen profiles defined inline (no external fetch)
       const screenSelect = document.getElementById('screenSelect');
@@ -51,6 +52,7 @@
 
       function reInitGridFromProfile(p) {
         if (!p) return;
+        currentProfile = p;
         // destroy existing instance (keeps DOM children)
         if (grid) grid.destroy();
         grid = new GridStack('#grid', {
@@ -64,7 +66,7 @@
         gridEl.style.padding = p.edgePadding;
         if (p.width) gridEl.style.width = p.width + 'px';
         if (p.height) gridEl.style.height = p.height + 'px';
-        setSquareCells();
+        applyProfileHeight();
       }
 
       // Inline list based on test.md
