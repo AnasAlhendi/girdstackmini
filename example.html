@@ -126,9 +126,28 @@
       }
 
       screenSelect.addEventListener('change', () => {
-        const key = screenSelect.value;
-        const p = profiles.get(key);
-        applyProfile(p);
+        const val = screenSelect.value;
+
+        // Try to parse from value string (e.g., "Zelos heig 12 width 22 boxpadding 29 edaging padding 29")
+        const mH = val.match(/heig\s+(\d+)/i);
+        const mW = val.match(/width\s+(\d+)/i);
+        const mBox = val.match(/boxpadding\s+(\d+)/i);
+        const mEdge = val.match(/edaging\s*padding\s+(\d+)/i);
+
+        if (mH && mW) {
+          const rows = parseInt(mH[1], 10);
+          const cols = parseInt(mW[1], 10);
+          grid.setColumns(cols);
+          grid.setRows(rows);
+          if (mBox) grid.setMargin(mBox[1] + 'px');
+          if (mEdge) document.getElementById('grid').style.padding = (mEdge[1] + 'px');
+          setSquareCells();
+          return;
+        }
+
+        // Fallback to mapped profile if parsing fails
+        const p = profiles.get(val);
+        if (p) applyProfile(p);
       });
 
       initProfilesFromInline();
