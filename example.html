@@ -107,7 +107,8 @@
         grid = new GridStack('#grid', {
           columns: profile.columns,
           rows: profile.rows,
-          margin: profile.boxPadding
+          margin: profile.boxPadding,
+          bottomBar: { columns: 4, rows: 1, cellHeight: 80, margin: 0, lineHeight: 8, color: '#000' }
         });
 
         // Container sizing
@@ -151,6 +152,15 @@
       const widgetB = grid.addWidget({ x: 1, y: 0, w: 2, h: 2, content: 'B' });
       widgetB.id = 'item-b';
 
+      // Bottom bar: add 4 widgets (1x1 each across the single row)
+      const bottomEls = [];
+      if (grid.addBottomWidget) {
+        bottomEls.push(grid.addBottomWidget({ x: 0, y: 0, w: 1, h: 1, content: 'B1' }));
+        bottomEls.push(grid.addBottomWidget({ x: 1, y: 0, w: 1, h: 1, content: 'B2' }));
+        bottomEls.push(grid.addBottomWidget({ x: 2, y: 0, w: 1, h: 1, content: 'B3' }));
+        bottomEls.push(grid.addBottomWidget({ x: 3, y: 0, w: 1, h: 1, content: 'B4' }));
+      }
+
       // Events
       screenSelect.addEventListener('change', onProfileChange);
       document.getElementById('copyScreenValue').addEventListener('click', copyScreenValue);
@@ -172,6 +182,9 @@
 
       document.getElementById('move').addEventListener('click', () => {
         grid.updateWidget('#item-b', { x: 6, y: 1, w: 5, h: 2 });
+        if (grid.updateBottomWidget && bottomEls[0]) {
+          grid.updateBottomWidget(bottomEls[0], { x: 2, y: 0, w: 2, h: 1 });
+        }
       });
 
       document.getElementById('remove').addEventListener('click', () => {
@@ -180,4 +193,3 @@
     </script>
   </body>
   </html>
-
