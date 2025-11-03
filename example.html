@@ -163,15 +163,13 @@
       // Add HTML -> Button (element becomes the item) and log result
       document.getElementById('addHtmlWrap').addEventListener('click', () => {
         const html = '<button style="background:#444;color:#fff;border:0;border-radius:8px;">B</button>';
-        const el = grid.htmlAsItem(html);
-
+        const el = grid.addWidgetHTML(html, { x: 0, y: 0, w: 1, h: 1 });
       });
 
       // Add prebuilt grid item HTML directly as an item and log result
       document.getElementById('addHtmlPre').addEventListener('click', () => {
         const pre = '<button class="grid-stack-item" gs-x="0" gs-y="2" gs-w="3" gs-h="2" style="background:#2c6bf2;color:#fff;border:0;border-radius:8px;outline:3px solid #000;font-weight:700;">PREBUILT</button>';
-        const el = grid.htmlAsItem(pre);
-
+        const el = grid.addWidgetHTML(pre);
       });
 
       document.getElementById('move').addEventListener('click', () => {

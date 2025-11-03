@@ -223,16 +223,27 @@
 
     // Make the provided HTML element (from a string) the grid item itself.
     // Adds the `grid-stack-item` class to that element (no inner wrapper),
-    // then places it using opts. Example: htmlAsItem('<button>B</button>', {x:1,y:0,w:1,h:1})
-    htmlAsItem(html, opts) {
+    // then places it using either opts object or positional x,y,w,h.
+    // Examples:
+    //   addWidgetHTML('<button>B</button>', {x:1,y:0,w:1,h:1})
+    //   addWidgetHTML('<button>B</button>', 1, 0, 1, 1)
+    addWidgetHTML(html, xOrOpts, y, w, h) {
       const tpl = document.createElement('template');
       tpl.innerHTML = (html || '').trim();
       const el = tpl.content.firstElementChild;
       if (!el) return null;
       if (!el.classList.contains('grid-stack-item')) el.classList.add('grid-stack-item');
-      
+
       el.dataset.gsNowrap = 'true';
-      const conf = Object.assign({ w: 1, h: 1 }, opts || {});
+      let conf = { w: 1, h: 1 };
+      if (typeof xOrOpts === 'object' && xOrOpts !== null) {
+        conf = Object.assign(conf, xOrOpts);
+      } else if (xOrOpts != null) {
+        conf.x = toNumberMaybe(xOrOpts);
+        conf.y = toNumberMaybe(y);
+        conf.w = toNumberMaybe(w) || conf.w;
+        conf.h = toNumberMaybe(h) || conf.h;
+      }
       const gx = toNumberMaybe(el.getAttribute('gs-x'));
       const gy = toNumberMaybe(el.getAttribute('gs-y'));
       const gw = toNumberMaybe(el.getAttribute('gs-w'));
@@ -244,8 +255,9 @@
       return this.addWidget(el, conf);
     }
 
-    // alias
-    addHtmlAsItem(html, opts) { return this.htmlAsItem(html, opts); }
+    // Backward compatibility aliases
+    htmlAsItem(html, optsOrX, y, w, h) { return this.addWidgetHTML(html, optsOrX, y, w, h); }
+    addHtmlAsItem(html, optsOrX, y, w, h) { return this.addWidgetHTML(html, optsOrX, y, w, h); }
 
     // (removed) addButtonItem, makeItem
 
