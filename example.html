@@ -5,7 +5,7 @@
     <title>GridStack Minimal Example</title>
     <style>
       .grid-stack {
-        width: 100%; max-width: 1000px; margin: 20px auto;min-height: 360px;
+        width: 100%; margin: 20px auto;min-height: 360px;
       }
       /* use border instead of outline so visible gaps equal boxpadding */
 
@@ -14,7 +14,7 @@
         border-radius:8px; font: 14px/1.2 system-ui, sans-serif;
       }
       body, html { margin:0; padding:0; }
-      .controls { max-width: 1000px; margin: 10px auto; display: flex; gap: 8px; }
+      .controls { margin: 10px auto; display: flex; gap: 8px; }
       button { padding: 6px 10px; }
     </style>
   </head>
@@ -22,6 +22,8 @@
     <div class="controls">
       <label for="screenSelect">Screen:</label>
       <select id="screenSelect"></select>
+      <input id="screenValue" type="text" readonly placeholder="screen value" style="min-width:320px;" />
+      <button id="copyScreenValue">Copy</button>
       <input id="urlInput" type="text" placeholder="https://example.com" style="flex:1; min-width:240px;" />
       <button id="addUrl">Add URL</button>
       <button id="add">Add Widget</button>
@@ -77,15 +79,15 @@
       const inlineProfiles = [
         {
           title: '22\" 1080 x 1920 (Portrait) Zelos v2',
-          columns: 11, rows: 24, boxPadding: '29px', edgePadding: '29px', width: 1080, height: 1920aa
+          columns: 12, rows: 25, boxPadding: '29px', edgePadding: '29px', width: 1080, height: 1920,
         },
         {
           title: '15\" 1080 x 1920 (Portrait) Zelos v1',
-          columns: 11, rows: 21, boxPadding: '28px', edgePadding: '34px', width: 1080, height: 1920,
+          columns: 12, rows: 22, boxPadding: '28px', edgePadding: '34px', width: 1080, height: 1920,
         },
         {
           title: '15\" 1024 x 768 (Landscape) Mitra v1',
-          columns: 11, rows: 10, boxPadding: '29px', edgePadding: '29px', width: 1024, height: 768,
+          columns: 12, rows: 10, boxPadding: '29px', edgePadding: '29px', width: 1024, height: 768,
         },
         {
           title: '19\" 1280 x 1024 (Landscape) Mirta v2',
@@ -128,12 +130,14 @@
         if (list.length) {
           const firstVal = profileValueString(list[0]);
           screenSelect.value = firstVal;
+          document.getElementById('screenValue').value = firstVal;
           reInitGridFromProfile(list[0]);
         }
       }
 
       screenSelect.addEventListener('change', () => {
         const val = screenSelect.value;
+        document.getElementById('screenValue').value = val;
 
         // Try to parse from value string (e.g., "Zelos heig 12 width 22 boxpadding 29 edaging padding 29")
         const mH = val.match(/\bheig\s+(\d+)/i);
@@ -160,6 +164,18 @@
       });
 
       initProfilesFromInline();
+
+      // Copy screen value
+      document.getElementById('copyScreenValue').addEventListener('click', async () => {
+        const v = document.getElementById('screenValue').value || '';
+        try {
+          await navigator.clipboard.writeText(v);
+        } catch (e) {
+          const inp = document.getElementById('screenValue');
+          inp.select();
+          document.execCommand && document.execCommand('copy');
+        }
+      });
 
       // Add initial 1x1 widgets on first row
       const a = (function(){ return grid.addWidget({ x: 0, y: 0, w: 1, h: 1, content: 'A' }); })();
