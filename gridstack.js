@@ -289,13 +289,15 @@
     }
 
     layout() {
-      const cw = this._cellWidth();
+      const gap = this._gapPx();
+      const cw = this._cellWidth(gap);
       const ch = this._cellHeight();
       // position each item
-      this._items.forEach(n => this._applyItemLayout(n, cw, ch));
-      // container height
+      this._items.forEach(n => this._applyItemLayout(n, cw, ch, gap));
+      // container height includes gaps between rows
       const maxRow = this.rows != null ? this.rows : this._computedRows();
-      this.el.style.height = (maxRow * ch) + 'px';
+      const totalH = (maxRow * ch) + (Math.max(0, maxRow - 1) * gap);
+      this.el.style.height = totalH + 'px';
     }
 
     // geometry helpers
@@ -362,24 +364,26 @@
       return true;
     }
 
-    _applyItemLayout(n, cw, ch) {
-      const left = n.x * cw;
-      const top = n.y * ch;
-      const width = n.w * cw;
-      const height = n.h * ch;
+    _applyItemLayout(n, cw, ch, gap) {
+      const left = n.x * (cw + gap);
+      const top = n.y * (ch + gap);
+      const width = (n.w * cw) + (Math.max(0, n.w - 1) * gap);
+      const height = (n.h * ch) + (Math.max(0, n.h - 1) * gap);
       const s = n.el.style;
       s.left = left + 'px';
       s.top = top + 'px';
       s.width = width + 'px';
       s.height = height + 'px';
       const content = n.el.querySelector('.grid-stack-item-content');
-      if (content) content.style.padding = this.margin; else n.el.style.padding = this.margin;
+      if (content) content.style.padding = '0px'; else n.el.style.padding = '0px';
     }
 
-    _cellWidth() {
+    _cellWidth(gapPx) {
       const w = this.el.clientWidth || this.el.getBoundingClientRect().width || 0;
       const cols = Math.max(1, this.columns || 12);
-      return Math.floor(w / cols);
+      const totalGap = Math.max(0, cols - 1) * (gapPx || 0);
+      const avail = Math.max(0, w - totalGap);
+      return Math.floor(avail / cols);
     }
 
     _cellHeight() {
@@ -396,10 +400,24 @@
       return px || 0;
     }
 
-    _computedRows() {
+  _computedRows() {
       let max = 0;
       this._items.forEach(n => { max = Math.max(max, n.y + n.h); });
       return max;
+    }
+
+    _gapPx() {
+      const p = parseSize(this.margin);
+      if (p.u === 'px') return p.n;
+      // fallback: resolve to pixels using a temp element height
+      const t = document.createElement('div');
+      t.style.position = 'absolute';
+      t.style.visibility = 'hidden';
+      t.style.height = (p.n + (p.u || 'px'));
+      document.body.appendChild(t);
+      const px = t.getBoundingClientRect().height || 0;
+      t.remove();
+      return px || 0;
     }
 
     
