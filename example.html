@@ -31,21 +31,16 @@
 
     <script src="gridstack.js"></script>
     <script>
-      // Init with basic options
-      const grid = new GridStack('#grid', {
-        columns: 12,
-        rows: 12,
-        margin: '8px',
-        cellHeight: 80,
-        debug: false,
-      });
+      // Grid instance (re-assigned on each profile change)
+      let grid;
 
       // Optional: make cells square
       function setSquareCells() {
         const gridEl = document.getElementById('grid');
         const w = gridEl.clientWidth || gridEl.getBoundingClientRect().width;
-        const cell = Math.max(10, Math.floor(w / 12));
-        grid.setCellHeight(cell);
+        const cols = grid && grid.columns ? grid.columns : 12;
+        const cell = Math.max(10, Math.floor(w / cols));
+        if (grid) grid.setCellHeight(cell);
       }
       window.addEventListener('resize', setSquareCells);
       setSquareCells();
@@ -54,15 +49,19 @@
       const screenSelect = document.getElementById('screenSelect');
       const profiles = new Map();
 
-      function applyProfile(p) {
+      function reInitGridFromProfile(p) {
         if (!p) return;
-        grid.setColumns(p.columns);
-        grid.setRows(p.rows);
-        grid.setMargin(p.boxPadding);
-        // apply edge padding on the grid container
+        // destroy existing instance (keeps DOM children)
+        if (grid) grid.destroy();
+        grid = new GridStack('#grid', {
+          columns: p.columns,
+          rows: p.rows,
+          margin: p.boxPadding,
+          cellHeight: 80,
+          debug: false,
+        });
         const gridEl = document.getElementById('grid');
         gridEl.style.padding = p.edgePadding;
-        // recompute cell height to maintain square-ish cells unless user resizes
         setSquareCells();
       }
 
@@ -121,7 +120,7 @@
         if (list.length) {
           const firstVal = profileValueString(list[0]);
           screenSelect.value = firstVal;
-          applyProfile(list[0]);
+          reInitGridFromProfile(list[0]);
         }
       }
 
@@ -137,24 +136,22 @@
         if (mH && mW) {
           const rows = parseInt(mH[1], 10);
           const cols = parseInt(mW[1], 10);
-          grid.setColumns(cols);
-          grid.setRows(rows);
-          if (mBox) grid.setMargin(mBox[1] + 'px');
-          if (mEdge) document.getElementById('grid').style.padding = (mEdge[1] + 'px');
-          setSquareCells();
+          const box = mBox ? (mBox[1] + 'px') : '8px';
+          const edge = mEdge ? (mEdge[1] + 'px') : '0px';
+          reInitGridFromProfile({ columns: cols, rows: rows, boxPadding: box, edgePadding: edge });
           return;
         }
 
         // Fallback to mapped profile if parsing fails
         const p = profiles.get(val);
-        if (p) applyProfile(p);
+        if (p) reInitGridFromProfile(p);
       });
 
       initProfilesFromInline();
 
       // Add initial 1x1 widgets on first row
-      const a = grid.addWidget({ x: 0, y: 0, w: 1, h: 1, content: 'A' });
-      const b = grid.addWidget({ x: 1, y: 0, w: 1, h: 1, content: 'B' });
+      const a = (function(){ return grid.addWidget({ x: 0, y: 0, w: 1, h: 1, content: 'A' }); })();
+      const b = (function(){ return grid.addWidget({ x: 1, y: 0, w: 1, h: 1, content: 'B' }); })();
       b.id = 'item-b';
 
       // Wire up controls
