@@ -8,7 +8,7 @@
         width: 100%; max-width: 1000px; margin: 20px auto;min-height: 360px;
       }
       /* use border instead of outline so visible gaps equal boxpadding */
-      .grid-stack > .grid-stack-item { border: 2px solid #000; }
+
       .grid-stack-item-content {
         background:#4b8cfb; color:#fff; display:flex; align-items:center; justify-content:center;
         border-radius:8px; font: 14px/1.2 system-ui, sans-serif;
@@ -64,7 +64,8 @@
           debug: false,
         });
         const gridEl = document.getElementById('grid');
-        gridEl.style.padding = p.edgePadding;
+        // No padding on grid container
+        gridEl.style.padding = '0px';
         if (p.width) gridEl.style.width = p.width + 'px';
         if (p.height) gridEl.style.height = p.height + 'px';
         applyProfileHeight();
@@ -74,15 +75,15 @@
       const inlineProfiles = [
         {
           title: '22\" 1080 x 1920 (Portrait) Zelos v2',
-          columns: 12, rows: 25, boxPadding: '29px', edgePadding: '29px', width: 1080, height: 1920
+          columns: 11, rows: 24, boxPadding: '29px', edgePadding: '29px', width: 1080, height: 1920aa
         },
         {
           title: '15\" 1080 x 1920 (Portrait) Zelos v1',
-          columns: 12, rows: 22, boxPadding: '28px', edgePadding: '34px', width: 1080, height: 1920
+          columns: 11, rows: 21, boxPadding: '28px', edgePadding: '34px', width: 1080, height: 1920,
         },
         {
           title: '15\" 1024 x 768 (Landscape) Mitra v1',
-          columns: 12, rows: 10, boxPadding: '29px', edgePadding: '29px', width: 1024, height: 768
+          columns: 11, rows: 10, boxPadding: '29px', edgePadding: '29px', width: 1024, height: 768,
         },
         {
           title: '19\" 1280 x 1024 (Landscape) Mirta v2',
