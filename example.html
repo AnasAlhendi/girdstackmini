@@ -178,14 +178,14 @@
       });
 
       // Add initial 1x1 widgets on first row
-      const a = (function(){ return grid.addWidget({ x: 0, y: 0, w: 1, h: 1, content: 'A' }); })();
-      const b = (function(){ return grid.addWidget({ x: 1, y: 0, w: 1, h: 1, content: 'B' }); })();
+      const a = (function(){ return grid.addWidget({ x: 0, y: 0, w: 2, h: 2, content: 'A' }); })();
+      const b = (function(){ return grid.addWidget({ x: 1, y: 0, w: 2, h: 2, content: 'B' }); })();
       b.id = 'item-b';
 
       // Wire up controls
       document.getElementById('add').addEventListener('click', () => {
         const count = document.querySelectorAll('.grid-stack-item').length;
-        grid.addWidget({ w: 1, h: 1, content: 'New ' + count });
+        grid.addWidget({ w: 1, h: 1, w: 2, h: 2, content: 'New ' + count });
       });
 
       // Add URL widget: renders the given URL inside an iframe
