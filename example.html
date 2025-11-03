@@ -97,15 +97,37 @@
         });
       }
 
+      // Add default 4 buttons to the bottom bar grid
+      function addBottomDefaultButtons() {
+        if (!grid || !grid.addBottomWidget) return [];
+        const labels = ['B1', 'B2', 'B3', 'B4'];
+        const els = [];
+        labels.forEach((label, i) => {
+          const el = grid.addBottomWidget({ x: i, y: 0, w: 1, h: 1, content: label });
+          if (el) els.push(el);
+        });
+        return els;
+      }
+
       function initGrid(profile) {
         if (!profile) return;
         if (grid) grid.destroy();
+
+        // less math: assume bottom bar fixed 88px (80 + 8), margin 0
+        const bottomBar = { columns: 4, rows: 1, cellHeight: 80, margin: 0, lineHeight: 8, color: '#000' };
+        const rows = profile.rows || 12;
+        const gap = numberFromPx(profile.boxPadding);
+        const bottomBarHeight = 88;
+        const lessMath = (profile.height && rows)
+          ? (profile.height - Math.max(0, rows - 1) * gap - bottomBarHeight) / rows
+          : undefined;
 
         grid = new GridStack('#grid', {
           columns: profile.columns,
           rows: profile.rows,
           margin: profile.boxPadding,
-          bottomBar: { columns: 4, rows: 1, cellHeight: 80, margin: 0, lineHeight: 8, color: '#000' }
+          bottomBar,
+          cellHeight: lessMath
         });
 
         // Container sizing
@@ -113,13 +135,8 @@
         gridEl.style.width   = profile.width  ? profile.width  + 'px' : '';
         gridEl.style.height  = profile.height ? profile.height + 'px' : '';
 
-        // Keep exact container height by adjusting cellHeight
-        const gap  = numberFromPx(profile.boxPadding);
-        const rows = profile.rows || 12;
-        if (profile.height) {
-          const cellH = (profile.height - Math.max(0, rows - 1) * gap) / rows;
-          if (cellH > 0) grid.setCellHeight(cellH);
-        }
+        // Populate bottom bar buttons on every (re)init
+        addBottomDefaultButtons();
       }
 
       function onProfileChange() {
@@ -149,14 +166,7 @@
       const widgetB = grid.addWidget({ x: 1, y: 0, w: 2, h: 2, content: 'B' });
       widgetB.id = 'item-b';
 
-      // Bottom bar: add 4 widgets (1x1 each across the single row)
-      const bottomEls = [];
-      if (grid.addBottomWidget) {
-        bottomEls.push(grid.addBottomWidget({ x: 0, y: 0, w: 1, h: 1, content: 'B1' }));
-        bottomEls.push(grid.addBottomWidget({ x: 1, y: 0, w: 1, h: 1, content: 'B2' }));
-        bottomEls.push(grid.addBottomWidget({ x: 2, y: 0, w: 1, h: 1, content: 'B3' }));
-        bottomEls.push(grid.addBottomWidget({ x: 3, y: 0, w: 1, h: 1, content: 'B4' }));
-      }
+      // Bottom bar: initial population handled inside initGrid()
 
       // Events
       screenSelect.addEventListener('change', onProfileChange);
