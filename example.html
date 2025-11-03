@@ -8,7 +8,7 @@
         width: 100%; max-width: 1000px; margin: 20px auto;min-height: 360px;
       }
       /* use border instead of outline so visible gaps equal boxpadding */
-      .grid-stack > .grid-stack-item { border: 2px solid #000; box-sizing: border-box; }
+
       .grid-stack-item-content {
         background:#4b8cfb; color:#fff; display:flex; align-items:center; justify-content:center;
         border-radius:8px; font: 14px/1.2 system-ui, sans-serif;
@@ -22,7 +22,7 @@
     <div class="controls">
       <label for="screenSelect">Screen:</label>
       <select id="screenSelect"></select>
-      <input id="urlInput" type="text" placeholder="https://example.com or C:\\path\\file.html or file:///C:/path/file.html" style="flex:1; min-width:240px;" />
+      <input id="urlInput" type="text" placeholder="https://example.com" style="flex:1; min-width:240px;" />
       <button id="addUrl">Add URL</button>
       <input id="fileInput" type="file" accept=".html,.htm,text/html" style="display:none" />
       <button id="addFile">Add Local File</button>
@@ -79,15 +79,15 @@
       const inlineProfiles = [
         {
           title: '22\" 1080 x 1920 (Portrait) Zelos v2',
-          columns: 12, rows: 25, boxPadding: '29px', edgePadding: '29px', width: 1080, height: 1920
+          columns: 11, rows: 24, boxPadding: '29px', edgePadding: '29px', width: 1080, height: 1920aa
         },
         {
           title: '15\" 1080 x 1920 (Portrait) Zelos v1',
-          columns: 12, rows: 22, boxPadding: '28px', edgePadding: '34px', width: 1080, height: 1920
+          columns: 11, rows: 21, boxPadding: '28px', edgePadding: '34px', width: 1080, height: 1920,
         },
         {
           title: '15\" 1024 x 768 (Landscape) Mitra v1',
-          columns: 12, rows: 10, boxPadding: '29px', edgePadding: '29px', width: 1024, height: 768
+          columns: 11, rows: 10, boxPadding: '29px', edgePadding: '29px', width: 1024, height: 768,
         },
         {
           title: '19\" 1280 x 1024 (Landscape) Mirta v2',
@@ -177,23 +177,16 @@
       // Add URL widget: renders the given URL inside an iframe
       const urlInput = document.getElementById('urlInput');
       document.getElementById('addUrl').addEventListener('click', () => {
-        let input = (urlInput.value || '').trim();
-        // Support Windows absolute paths like C:\\folder\\file.html
-        if (/^[a-zA-Z]:[\\/]/.test(input)) {
-          input = 'file:///' + input.replace(/\\/g, '/');
-        }
-        // Resolve relative paths against current page
-        let href = '';
-        try { href = new URL(input, window.location.href).href; } catch (e) { href = input; }
-        if (!/^(https?:|file:)/i.test(href)) {
-          alert('Enter an http(s) URL, a file:/// URL, or a local path.');
+        const url = (urlInput.value || '').trim();
+        if (!/^https?:\/\//i.test(url)) {
+          alert('Please enter a valid http(s) URL.');
           return;
         }
         const cols = grid && grid.columns ? grid.columns : 12;
         const rows = grid && grid.rows ? (grid.rows || 12) : 12;
         const w = Math.max(3, Math.min(cols, Math.floor(cols/2)));
         const h = Math.max(3, Math.min(rows, Math.floor(rows/2)));
-        grid.addWidget({ w, h, content: `<iframe src="${href}" style="width:100%;height:100%;border:0;"></iframe>` });
+        grid.addWidget({ w, h, content: `<iframe src="${url}" style="width:100%;height:100%;border:0;"></iframe>` });
       });
       urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('addUrl').click(); } });
 
