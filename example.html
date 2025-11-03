@@ -44,8 +44,9 @@
     </div>
     <div class="grid-stack" id="grid"></div>
 
-    <script src="gridstack.js"></script>
-    <script>
+    <!-- Use the TypeScript build (ES module) -->
+    <script type="module">
+      import { GridStack } from './dist/grid.js?v=ts2';
       // DOM references
       const screenSelect = document.getElementById('screenSelect');
       const screenValue  = document.getElementById('screenValue');
@@ -194,4 +195,4 @@
       });
     </script>
   </body>
-  </html>
+</html>
