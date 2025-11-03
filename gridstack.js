@@ -68,9 +68,6 @@
       const mg = parseSize(opts.margin);
       this.margin = (typeof opts.margin === 'string') ? opts.margin : (mg.n + (mg.u || 'px'));
       this.nonce = opts.nonce;
-      // optional fixed container size (px)
-      this.containerWidthPx = toNumberMaybe(opts.containerWidth);
-      this.containerHeightPx = toNumberMaybe(opts.containerHeight);
       this._items = [];
 
       // base CSS
@@ -292,21 +289,13 @@
     }
 
     layout() {
-      // apply fixed container width if provided
-      if (this.containerWidthPx != null) this.el.style.width = this.containerWidthPx + 'px';
-      const gap = this._gapPx();
-      const cw = this._cellWidth(gap);
+      const cw = this._cellWidth();
       const ch = this._cellHeight();
       // position each item
-      this._items.forEach(n => this._applyItemLayout(n, cw, ch, gap));
-      // container height includes gaps between rows
-      if (this.containerHeightPx != null) {
-        this.el.style.height = this.containerHeightPx + 'px';
-      } else {
-        const maxRow = this.rows != null ? this.rows : this._computedRows();
-        const totalH = (maxRow * ch) + (Math.max(0, maxRow - 1) * gap);
-        this.el.style.height = totalH + 'px';
-      }
+      this._items.forEach(n => this._applyItemLayout(n, cw, ch));
+      // container height
+      const maxRow = this.rows != null ? this.rows : this._computedRows();
+      this.el.style.height = (maxRow * ch) + 'px';
     }
 
     // geometry helpers
@@ -373,26 +362,24 @@
       return true;
     }
 
-    _applyItemLayout(n, cw, ch, gap) {
-      const left = n.x * (cw + gap);
-      const top = n.y * (ch + gap);
-      const width = (n.w * cw) + (Math.max(0, n.w - 1) * gap);
-      const height = (n.h * ch) + (Math.max(0, n.h - 1) * gap);
+    _applyItemLayout(n, cw, ch) {
+      const left = n.x * cw;
+      const top = n.y * ch;
+      const width = n.w * cw;
+      const height = n.h * ch;
       const s = n.el.style;
       s.left = left + 'px';
       s.top = top + 'px';
       s.width = width + 'px';
       s.height = height + 'px';
       const content = n.el.querySelector('.grid-stack-item-content');
-      if (content) content.style.padding = '0px'; else n.el.style.padding = '0px';
+      if (content) content.style.padding = this.margin; else n.el.style.padding = this.margin;
     }
 
-    _cellWidth(gapPx) {
+    _cellWidth() {
       const w = this.el.clientWidth || this.el.getBoundingClientRect().width || 0;
       const cols = Math.max(1, this.columns || 12);
-      const totalGap = Math.max(0, cols - 1) * (gapPx || 0);
-      const avail = Math.max(0, w - totalGap);
-      return Math.floor(avail / cols);
+      return Math.floor(w / cols);
     }
 
     _cellHeight() {
@@ -415,26 +402,7 @@
       return max;
     }
 
-    _gapPx() {
-      const p = parseSize(this.margin);
-      if (p.u === 'px') return p.n;
-      // fallback: resolve to pixels using a temp element height
-      const t = document.createElement('div');
-      t.style.position = 'absolute';
-      t.style.visibility = 'hidden';
-      t.style.height = (p.n + (p.u || 'px'));
-      document.body.appendChild(t);
-      const px = t.getBoundingClientRect().height || 0;
-      t.remove();
-      return px || 0;
-    }
-
-    // Set fixed container size in px and relayout
-    setContainerSize(w, h) {
-      this.containerWidthPx = toNumberMaybe(w);
-      this.containerHeightPx = toNumberMaybe(h);
-      this.layout();
-    }
+    
   }
 
   return GridStack;
