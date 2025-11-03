@@ -68,6 +68,9 @@
       const mg = parseSize(opts.margin);
       this.margin = (typeof opts.margin === 'string') ? opts.margin : (mg.n + (mg.u || 'px'));
       this.nonce = opts.nonce;
+      // optional fixed container size (px)
+      this.containerWidthPx = toNumberMaybe(opts.containerWidth);
+      this.containerHeightPx = toNumberMaybe(opts.containerHeight);
       this._items = [];
 
       // base CSS
@@ -289,15 +292,21 @@
     }
 
     layout() {
+      // apply fixed container width if provided
+      if (this.containerWidthPx != null) this.el.style.width = this.containerWidthPx + 'px';
       const gap = this._gapPx();
       const cw = this._cellWidth(gap);
       const ch = this._cellHeight();
       // position each item
       this._items.forEach(n => this._applyItemLayout(n, cw, ch, gap));
       // container height includes gaps between rows
-      const maxRow = this.rows != null ? this.rows : this._computedRows();
-      const totalH = (maxRow * ch) + (Math.max(0, maxRow - 1) * gap);
-      this.el.style.height = totalH + 'px';
+      if (this.containerHeightPx != null) {
+        this.el.style.height = this.containerHeightPx + 'px';
+      } else {
+        const maxRow = this.rows != null ? this.rows : this._computedRows();
+        const totalH = (maxRow * ch) + (Math.max(0, maxRow - 1) * gap);
+        this.el.style.height = totalH + 'px';
+      }
     }
 
     // geometry helpers
@@ -418,6 +427,13 @@
       const px = t.getBoundingClientRect().height || 0;
       t.remove();
       return px || 0;
+    }
+
+    // Set fixed container size in px and relayout
+    setContainerSize(w, h) {
+      this.containerWidthPx = toNumberMaybe(w);
+      this.containerHeightPx = toNumberMaybe(h);
+      this.layout();
     }
   }
 

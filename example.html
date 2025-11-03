@@ -59,6 +59,8 @@
           margin: p.boxPadding,
           cellHeight: 80,
           debug: false,
+          containerWidth: p.width,
+          containerHeight: p.height,
         });
         const gridEl = document.getElementById('grid');
         gridEl.style.padding = p.edgePadding;
@@ -132,13 +134,17 @@
         const mW = val.match(/\bwidth\s+(\d+)/i);
         const mBox = val.match(/boxpadding\s+(\d+)/i);
         const mEdge = val.match(/edaging\s*padding\s+(\d+)/i);
+        const mSW = val.match(/\bscreenwidth\s+(\d+)/i);
+        const mSH = val.match(/\bscreenheight\s+(\d+)/i);
 
         if (mH && mW) {
           const rows = parseInt(mH[1], 10);
           const cols = parseInt(mW[1], 10);
           const box = mBox ? (mBox[1] + 'px') : '8px';
           const edge = mEdge ? (mEdge[1] + 'px') : '0px';
-          reInitGridFromProfile({ columns: cols, rows: rows, boxPadding: box, edgePadding: edge });
+          const sw = mSW ? parseInt(mSW[1], 10) : undefined;
+          const sh = mSH ? parseInt(mSH[1], 10) : undefined;
+          reInitGridFromProfile({ columns: cols, rows: rows, boxPadding: box, edgePadding: edge, width: sw, height: sh });
           return;
         }
 
