@@ -7,7 +7,8 @@
       .grid-stack {
         width: 100%; max-width: 1000px; margin: 20px auto;min-height: 360px;
       }
-      .grid-stack > .grid-stack-item { outline: 2px solid #000; }
+      /* use border instead of outline so visible gaps equal boxpadding */
+      .grid-stack > .grid-stack-item { border: 2px solid #000; }
       .grid-stack-item-content {
         background:#4b8cfb; color:#fff; display:flex; align-items:center; justify-content:center;
         border-radius:8px; font: 14px/1.2 system-ui, sans-serif;
