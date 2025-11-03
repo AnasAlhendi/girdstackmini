@@ -23,10 +23,9 @@
     return { n: parseFloat(m[1]), u: m[2] || 'px' };
   }
 
-  function createStyle(nonce) {
+  function createStyle() {
     const style = document.createElement('style');
     style.type = 'text/css';
-    if (nonce) style.nonce = nonce;
     document.head.appendChild(style);
     return style;
   }
@@ -53,7 +52,7 @@
     return null;
   }
 
-  // convert a numeric size + optional unit to pixels
+  
   function toPxValue(n, u) {
     const unit = u || 'px';
     if (unit === 'px') return n || 0;
@@ -71,7 +70,7 @@
     const content = el.querySelector && el.querySelector('.grid-stack-item-content');
     if (content) return content;
     if (el.dataset && el.dataset.gsNowrap === 'true') return null;
-    // Skip wrapping for button-as-item to keep valid HTML
+    
     if (el.tagName && el.tagName.toLowerCase() === 'button') return null;
     const wrap = document.createElement('div');
     wrap.className = 'grid-stack-item-content';
@@ -85,13 +84,12 @@
       const el = typeof container === 'string' ? document.querySelector(container) : container;
       if (!el) throw new Error('GridStack: container not found');
 
-      // defaults
+      
       const d = {
-        columns: 12,        // عدد الأعمدة
-        rows: undefined,    // max rows (container height)
-        margin: 0,          // padding inside item content
-        cellHeight: 80,     // row height in px (or CSS size)
-        nonce: undefined,
+        columns: 12,        
+        rows: undefined,    
+        margin: 0,          
+        cellHeight: 80,     
         bottomBar: undefined,
       };
       opts = Object.assign({}, d, opts || {});
@@ -101,15 +99,14 @@
       this.rows = toNumberMaybe(opts.rows);
       const ch = parseSize(opts.cellHeight);
       this.cellHeightValue = ch.n;
-      this.cellHeightUnit = ch.u; // currently only px is used for layout math
+      this.cellHeightUnit = ch.u; 
       const mg = parseSize(opts.margin);
       this.margin = (typeof opts.margin === 'string') ? opts.margin : (mg.n + (mg.u || 'px'));
-      this.nonce = opts.nonce;
       this.bottomBarCfg = normalizeBottomBar(opts.bottomBar);
       this._items = [];
 
-      // base CSS
-      this.styleEl = createStyle(this.nonce);
+      
+      this.styleEl = createStyle();
       this.styleEl.appendChild(document.createTextNode(
         [
           '.grid-stack{position:relative; overflow:visible;}',
@@ -123,14 +120,14 @@
 
       if (!this.el.classList.contains('grid-stack')) this.el.classList.add('grid-stack');
 
-      // Apply margin via inline style on each item content when laying out
+      
       this._onResize = this.layout.bind(this);
       window.addEventListener('resize', this._onResize);
 
-      // auto prepare existing children
+      
       this._autoInitExisting();
 
-      // optional bottom bar element
+      
       this._ensureBottomBar();
       if (this.bottomBarCfg) {
         this.bottomGrid = new GridStack(this.bottomBarContentEl, {
@@ -138,15 +135,14 @@
           rows: this.bottomBarCfg.rows,
           margin: this.bottomBarCfg.margin,
           cellHeight: (this.bottomBarCfg.cellHeight || 80) + (this.bottomBarCfg.cellHeightUnit || 'px'),
-          nonce: this.nonce
         });
       }
 
-      // initial layout
+      
       this.layout();
     }
 
-    static init(container, opts) { return new GridStack(container, opts); }
+    
 
     destroy() {
       window.removeEventListener('resize', this._onResize);
@@ -155,7 +151,7 @@
       if (this.bottomBarEl && this.bottomBarEl.parentNode) this.bottomBarEl.parentNode.removeChild(this.bottomBarEl);
     }
 
-    // resolve an input to the .grid-stack-item element within this grid
+    
     _resolveItemEl(input) {
       let el = null;
       if (typeof input === 'string') {
@@ -165,7 +161,7 @@
         el = input;
       }
       if (!el) return null;
-      // if given inner element, climb to the item container
+      
       if (!el.classList.contains('grid-stack-item')) {
         el = el.closest('.grid-stack-item');
       }
@@ -227,28 +223,28 @@
 
       let w = toNumberMaybe(conf.w) || 1;
       let h = toNumberMaybe(conf.h) || 1;
-      // clamp size
+      
       if (this.columns && w > this.columns) w = this.columns;
 
       let x = toNumberMaybe(conf.x);
       let y = toNumberMaybe(conf.y);
-      // auto-position if x or y are not provided
+      
       if (x == null || y == null) {
         const pos = this._findEmptyPosition(w, h);
-        if (!pos) return null; // cannot fit
+        if (!pos) return null; 
         x = pos.x; y = pos.y;
       } else {
-        // clamp to columns
+        
         x = Math.max(0, x);
         y = Math.max(0, y);
         if (this.columns && x + w > this.columns) x = Math.max(0, this.columns - w);
-        // if rows cap exists and would overflow, try to auto-place
+        
         if (this.rows != null && y + h > this.rows) {
           const pos = this._findEmptyPosition(w, h);
           if (!pos) return null;
           x = pos.x; y = pos.y;
         }
-        // avoid overlap; if overlaps, try auto-place
+        
         if (!this._isAreaFree(x, y, w, h)) {
           const pos = this._findEmptyPosition(w, h);
           if (!pos) return null;
@@ -269,7 +265,7 @@
       return el;
     }
 
-    // Add a widget to the bottom bar content area
+    
     addBottomWidget(elOrHtmlOrOpts, opts) {
       if (!this.bottomGrid) return null;
       const el = this.bottomGrid.addWidget(elOrHtmlOrOpts, opts);
@@ -278,12 +274,12 @@
     }
 
 
-    // Make the provided HTML element (from a string) the grid item itself.
-    // Adds the `grid-stack-item` class to that element (no inner wrapper),
-    // then places it using either opts object or positional x,y,w,h.
-    // Examples:
-    //   addWidgetHTML('<button>B</button>', {x:1,y:0,w:1,h:1})
-    //   addWidgetHTML('<button>B</button>', 1, 0, 1, 1)
+    
+    
+    
+    
+    
+    
     addWidgetHTML(html, xOrOpts, y, w, h) {
       const tpl = document.createElement('template');
       tpl.innerHTML = (html || '').trim();
@@ -312,7 +308,7 @@
       return this.addWidget(el, conf);
     }
 
-    // Bottom bar: add element as item (no inner wrapper)
+    
     addBottomWidgetHTML(html, xOrOpts, y, w, h) {
       if (!this.bottomGrid) return null;
       const el = this.bottomGrid.addWidgetHTML(html, xOrOpts, y, w, h);
@@ -320,15 +316,9 @@
       return el;
     }
 
-    // Update a bottom widget position/size
-    updateBottomWidget(target, conf) {
-      if (!this.bottomGrid) return false;
-      const ok = this.bottomGrid.updateWidget(target, conf);
-      this.layout();
-      return ok;
-    }
+    
 
-    // Remove a bottom widget
+    
     removeBottomWidget(target) {
       if (!this.bottomGrid) return false;
       const ok = this.bottomGrid.removeWidget(target);
@@ -336,23 +326,13 @@
       return ok;
     }
 
-    // (compat aliases removed)
+    
 
-    // (removed) addButtonItem, makeItem
+    
 
-    // (removed) addElementAsItem
+    
 
-    // (removed) addWidgetHtml
-
-    setColumns(n) {
-      this.columns = Math.max(1, Number(n) || 12);
-      this.layout();
-    }
-
-    setRows(n) {
-      this.rows = toNumberMaybe(n);
-      this.layout();
-    }
+    
 
     setCellHeight(v) {
       const p = parseSize(v);
@@ -361,19 +341,13 @@
       this.layout();
     }
 
-    setMargin(v) {
-      const p = parseSize(v);
-      this.margin = (typeof v === 'string') ? v : (p.n + (p.u || 'px'));
-      this.layout();
-    }
-
     layout() {
       const gap = this._gapPx();
       const cw = this._cellWidth(gap);
       const ch = this._cellHeight();
-      // position each item
+      
       this._items.forEach(n => this._applyItemLayout(n, cw, ch, gap));
-      // container height includes gaps between rows
+      
       const maxRow = this.rows != null ? this.rows : this._computedRows();
       let totalH = (maxRow * ch) + (Math.max(0, maxRow - 1) * gap);
       if (this.bottomBarCfg) {
@@ -386,18 +360,18 @@
         const barH = contentH + lineH;
         totalH += barH;
 
-        // Size elements
+        
         const barS = this.bottomBarEl.style;
         barS.height = barH + 'px';
         const contentS = this.bottomBarContentEl.style;
         contentS.height = contentH + 'px';
-        contentS.top = lineH + 'px'; // place content below top line
+        contentS.top = lineH + 'px'; 
         const lineS = this.bottomBarLineEl.style;
         lineS.height = lineH + 'px';
         lineS.top = '0px';
         lineS.background = this.bottomBarCfg.color || '#000';
 
-        // ensure bottom grid is laid out
+        
         if (this.bottomGrid) this.bottomGrid.layout();
       } else if (this.bottomBarEl) {
         this.bottomBarEl.style.height = '0px';
@@ -405,7 +379,7 @@
       this.el.style.height = totalH + 'px';
     }
 
-    // geometry helpers
+    
     _intersects(a, b) {
       return !(a.y >= b.y + b.h || a.y + a.h <= b.y || a.x + a.w <= b.x || a.x >= b.x + b.w);
     }
@@ -430,7 +404,7 @@
       return null;
     }
 
-    // Remove a widget by element or selector. Returns true if removed.
+    
     removeWidget(target) {
       const el = this._resolveItemEl(target);
       if (!el) return false;
@@ -442,32 +416,7 @@
       return true;
     }
 
-    // Update a widget position/size.
-    updateWidget(target, conf) {
-      const el = this._resolveItemEl(target);
-      if (!el) return false;
-      const item = this._items.find(i => i.el === el);
-      if (!item) return false;
-      const next = Object.assign({}, item);
-      if (conf && typeof conf === 'object') {
-        if (conf.x != null) next.x = Math.max(0, Number(conf.x) || 0);
-        if (conf.y != null) next.y = Math.max(0, Number(conf.y) || 0);
-        if (conf.w != null) next.w = Math.max(1, Number(conf.w) || 1);
-        if (conf.h != null) next.h = Math.max(1, Number(conf.h) || 1);
-      }
-      // keep within columns when possible
-      if (this.columns && next.w > this.columns) next.w = this.columns;
-      if (this.columns && next.x + next.w > this.columns) next.x = Math.max(0, this.columns - next.w);
-
-      // write back
-      Object.assign(item, next);
-      el.setAttribute('gs-x', String(item.x));
-      el.setAttribute('gs-y', String(item.y));
-      el.setAttribute('gs-w', String(item.w));
-      el.setAttribute('gs-h', String(item.h));
-      this.layout();
-      return true;
-    }
+    
 
     _applyItemLayout(n, cw, ch, gap) {
       const left = n.x * (cw + gap);
@@ -529,7 +478,7 @@
       }
     }
 
-    // bottom-specific geometry handled by bottomGrid
+    
     
   }
 

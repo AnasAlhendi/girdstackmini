@@ -40,7 +40,6 @@
       <button id="add">Add Widget</button>
       <button id="addHtmlWrap">Add HTML → Button</button>
       <button id="addHtmlPre">Add Prebuilt</button>
-      <button id="move">Move/Resize B</button>
       <button id="remove">Remove A</button>
     </div>
     <div class="grid-stack" id="grid"></div>
@@ -178,12 +177,7 @@
         grid.addWidgetHTML(prebuilt);
       });
 
-      document.getElementById('move').addEventListener('click', () => {
-        grid.updateWidget('#item-b', { x: 6, y: 1, w: 5, h: 2 });
-        if (grid.updateBottomWidget && bottomEls[0]) {
-          grid.updateBottomWidget(bottomEls[0], { x: 2, y: 0, w: 2, h: 1 });
-        }
-      });
+      // update feature removed by request
 
       document.getElementById('remove').addEventListener('click', () => {
         grid.removeWidget(widgetA);
