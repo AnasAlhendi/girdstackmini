@@ -64,7 +64,6 @@
           columns: p.columns,
           rows: p.rows,
           margin: p.boxPadding,
-          cellHeight: 80,
           debug: false,
         });
         const gridEl = document.getElementById('grid');
@@ -188,23 +187,8 @@
         grid.addWidget({ w: 1, h: 1, w: 2, h: 2, content: 'New ' + count });
       });
 
-      // Add URL widget: renders the given URL inside an iframe
-      const urlInput = document.getElementById('urlInput');
-      document.getElementById('addUrl').addEventListener('click', () => {
-        const url = (urlInput.value || '').trim();
-        if (!/^https?:\/\//i.test(url)) {
-          alert('Please enter a valid http(s) URL.');
-          return;
-        }
-        const cols = grid && grid.columns ? grid.columns : 12;
-        const rows = grid && grid.rows ? (grid.rows || 12) : 12;
-        const w = Math.max(3, Math.min(cols, Math.floor(cols/2)));
-        const h = Math.max(3, Math.min(rows, Math.floor(rows/2)));
-        grid.addWidget({ w, h, content: `<iframe src="${url}" style="width:100%;height:100%;border:0;"></iframe>` });
-      });
-      urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('addUrl').click(); } });
-
-      // Add HTML -> Button (element becomes the item) and log result
+            // URL widget removed per request
+// Add HTML -> Button (element becomes the item) and log result
       document.getElementById('addHtmlWrap').addEventListener('click', () => {
         const html = '<button style="background:#444;color:#fff;border:0;border-radius:8px;">B</button>';
         const el = grid.addWidgetHTML(html, { x: 0, y: 0, w: 1, h: 1 });
