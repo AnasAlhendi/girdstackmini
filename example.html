@@ -59,11 +59,11 @@
           margin: p.boxPadding,
           cellHeight: 80,
           debug: false,
-          containerWidth: p.width,
-          containerHeight: p.height,
         });
         const gridEl = document.getElementById('grid');
         gridEl.style.padding = p.edgePadding;
+        if (p.width) gridEl.style.width = p.width + 'px';
+        if (p.height) gridEl.style.height = p.height + 'px';
         setSquareCells();
       }
 
